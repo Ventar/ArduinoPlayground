@@ -5,6 +5,8 @@
 #include <PresenceState.h>
 #include <TextItem.h>
 
+//#define DEBUG_CIRCUIT
+
 const String WIFI_NAME = "Destiny_EXT";
 const String WIFI_PASSWORT = "8882941015907883";
 
@@ -51,7 +53,7 @@ bool answered = false;
 void setup() {
     setupSerial();                            // Setup the serial interface to debug.
     connectToWifi(WIFI_NAME, WIFI_PASSWORT);  // connect to the WiFi network
-    circuit = new Circuit::CircuitClient("192.168.2.110", 443, "michael.rodenbuecher@atos.net", "sdf56JKL!");
+    //circuit = new Circuit::CircuitClient("192.168.2.110", 443, "michael.rodenbuecher@atos.net", "sdf56JKL!");
     circuit = new Circuit::CircuitClient("circuitsandbox.net", 443, "michael.rodenbuecher@unify.com", "sdf56JKL!");
     circuit->onConversationAddItemEvent([](Circuit::TextItem item) {
         Serial.printf("[Main] New TextItem received ::= [%s]\n", item.toString().c_str());
@@ -71,9 +73,8 @@ void setup() {
     circuit->setup();
 
     std::vector<String> useridsToSubscribe;
-    useridsToSubscribe.push_back("b1fa63df-45b3-4b7e-8651-27d6beabfbcd");
-    useridsToSubscribe.push_back("b5044367-796d-4b23-8f6e-df644b8cb5e9");
-
+    useridsToSubscribe.push_back("94737ebb-c9a7-4b15-9a0f-4ec281d57f1f");
+    
     circuit->subscribeToPresence(useridsToSubscribe, [](Circuit::ResultCode resultCode, std::vector<Circuit::PresenceState> states) {
         Serial.printf("[Main] Received subscribe presence results");
         for (Circuit::PresenceState s : states) {
