@@ -54,9 +54,10 @@ void setup() {
     setupSerial();                            // Setup the serial interface to debug.
     connectToWifi(WIFI_NAME, WIFI_PASSWORT);  // connect to the WiFi network
     //circuit = new Circuit::CircuitClient("192.168.2.110", 443, "michael.rodenbuecher@atos.net", "sdf56JKL!");
-    circuit = new Circuit::CircuitClient("circuitsandbox.net", 443, "michael.rodenbuecher@unify.com", "sdf56JKL!");
+    circuit = new Circuit::CircuitClient("circuitsandbox.net", 443, "michael.rodenbuecher@arduino.com", "sdf56JKL!");
     circuit->onConversationAddItemEvent([](Circuit::TextItem item) {
         Serial.printf("[Main] New TextItem received ::= [%s]\n", item.toString().c_str());
+        /*
         if (!answered) {
             answered = true;
             String content = String("Reply to: ") + item.content;
@@ -64,16 +65,21 @@ void setup() {
                 Serial.printf("[Main] Response for new text item creation ::= [%s]\n", item.toString().c_str());
             });
         }
+        */
     });
 
     circuit->onUserUserPresenceChangedEvent([](Circuit::PresenceState state) {
             Serial.printf("[Main] Presence state of user ::= [%s] is ::= [%s]\n", state.userId.c_str(), state.presenceState.c_str());
     });
 
+    circuit->onRTCSessionSessionStartedEvent([](Circuit::Call call) {
+            Serial.printf("[Main] Incoming call in conversation ::= [%s] \n", call.conversationId.c_str());
+    });
+
     circuit->setup();
 
     std::vector<String> useridsToSubscribe;
-    useridsToSubscribe.push_back("94737ebb-c9a7-4b15-9a0f-4ec281d57f1f");
+    useridsToSubscribe.push_back("d94a4f77-1cb9-49ba-98c3-cd44d6da1e39");
     
     circuit->subscribeToPresence(useridsToSubscribe, [](Circuit::ResultCode resultCode, std::vector<Circuit::PresenceState> states) {
         Serial.printf("[Main] Received subscribe presence results");

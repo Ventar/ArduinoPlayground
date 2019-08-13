@@ -44,8 +44,8 @@ PresenceState PresenceState::fromUserUserPresenceChangeEvent(DynamicJsonDocument
     PresenceState item;
 
     // mandatory fields
-    item.userId = String((const char*)message["event"]["user"]["presenceChanged"]["userId"]);
-    item.presenceState = String((const char*)message["event"]["user"]["presenceChanged"]["state"]);
+    item.userId = String((const char*)message["event"]["user"]["userId"]);
+    item.presenceState = String((const char*)message["event"]["user"]["presenceChanged"]["newState"]["state"]);
 
     return item;
 }

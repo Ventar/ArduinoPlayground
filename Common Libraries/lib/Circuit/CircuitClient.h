@@ -10,6 +10,7 @@
 #include <WebSockets/WebSocketsClient.h>
 #include <map>
 #include <vector>
+#include "Call.h"
 #include "PresenceState.h"
 #include "TextItem.h"
 
@@ -40,7 +41,7 @@ struct ResultCode {
  * @since 2019-07-17
  */
 class CircuitClient {
-  public:
+public:
     /**
      * Creates a new Circuit websocket connection to exchange messages and receive events.
      *
@@ -81,7 +82,8 @@ class CircuitClient {
     // the following methods to trigger business logic do offer two signatures, one with and one without a callback.
 
     /**
-     *  Callback for acknowledge replies, i.e. replies which are either OK or ERROR, but do not contain additional content.
+     *  Callback for acknowledge replies, i.e. replies which are either OK or ERROR, but do not contain additional
+     * content.
      *  @param resultCode the result code.
      */
     typedef std::function<void(ResultCode resultCode)> AcknowledgeCB;
@@ -164,6 +166,7 @@ class CircuitClient {
 
     typedef std::function<void(TextItem item)> ConversationAddItemEventCB;
     typedef std::function<void(PresenceState state)> UserUserPresenceChangedEventCB;
+    typedef std::function<void(Call call)> RTCSessionSessionStartedEventCB;
 
     /**
      * Event triggered when a new text item event was received, either because of an update or an creation.
@@ -179,7 +182,14 @@ class CircuitClient {
      */
     void onUserUserPresenceChangedEvent(UserUserPresenceChangedEventCB callback);
 
-  private:
+    /**
+     * Event triggered when a new session was started.
+     *
+     * @param callback event the callback to execute
+     */
+    void onRTCSessionSessionStartedEvent(RTCSessionSessionStartedEventCB callback);
+
+private:
     /**
      * The logon process to Circuit is a two step one. First we need to generate a cookie via an HTTP call and
      * afterwards this cookie has to be used to authenticate during the websocket upgrade.
@@ -270,6 +280,11 @@ class CircuitClient {
      * Event callback for user presence state changes.
      */
     UserUserPresenceChangedEventCB _userUserPresenceChangedEventCB;
+
+    /**
+     * Event callback for user rtc session session started event.
+     */
+    RTCSessionSessionStartedEventCB _rtcSessionSessionStartedEventCB;
 };
 
 }  // namespace Circuit

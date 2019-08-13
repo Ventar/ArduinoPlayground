@@ -74,6 +74,13 @@ void CircuitClient::handleWSEvent(DynamicJsonDocument& message) {
     ) {
         // at this point we now that we receive a text item created event and can call the callback if it is configured
         _conversationAddItemEventCB(TextItem::fromConversationAddItemEvent(message));
+    } else if (message["event"]["type"] == "RTC_SESSION" &&
+               message["event"]["rtcSession"]["type"] == "SESSION_STARTED" &&
+               _rtcSessionSessionStartedEventCB != NULL) {
+        _rtcSessionSessionStartedEventCB(Call::fromRTCSessionStartedEvent(message));
+    } else if (message["event"]["type"] == "USER" && message["event"]["user"]["type"] == "USER_PRESENCE_CHANGE" &&
+               _userUserPresenceChangedEventCB != NULL) {
+        _userUserPresenceChangedEventCB(PresenceState::fromUserUserPresenceChangeEvent(message));
     }
 }
 
@@ -107,7 +114,6 @@ void CircuitClient::onWebSocketEvent(WStype_t type, uint8_t* payload, size_t len
                 handleWSResponse(doc);
             }
         }
-
     }
 
     // send message to server
@@ -325,6 +331,10 @@ void CircuitClient::onConversationAddItemEvent(ConversationAddItemEventCB callba
 
 void CircuitClient::onUserUserPresenceChangedEvent(UserUserPresenceChangedEventCB callback) {
     this->_userUserPresenceChangedEventCB = callback;
+}
+
+void CircuitClient::onRTCSessionSessionStartedEvent(RTCSessionSessionStartedEventCB callback) {
+    this->_rtcSessionSessionStartedEventCB = callback;
 }
 
 }  // namespace Circuit
