@@ -1,6 +1,7 @@
 #ifndef WiFiClock_h
 #define WiFiClock_h
 
+#include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -10,8 +11,11 @@
 #define DEBUG_WIFI_CLOCK
 
 #ifdef DEBUG_WIFI_CLOCK
+
+
 #define debug(x, ...) Serial.printf((String(x) + String("\n")).c_str(), __VA_ARGS__);
 #define debugln(x) Serial.printf((String(x) + String("\n")).c_str());
+
 #else
 #define debugln(x)
 #define debug(x, ...)
@@ -60,7 +64,7 @@ class WiFiClock {
     unsigned long now = millis();
 
     // the interval to update has elapsed, we need to fetch a new reference time.
-    if (_lastCall == 0 || now - _lastCall >= (int)3600) {
+    if (_lastCall == 0 || now - _lastCall >= (int)3600000) {
       fetchTime();
     } else {
       // calculate the number of minutes that have passed since the last REST update.
@@ -150,7 +154,7 @@ class WiFiClock {
   void fetchTime() {
     unsigned long now = millis();
 
-    debug("[WiFi Clock] Fetch time from http://worldtimeapi.org/api/timezone/Europe/Berlin");
+    debugln("[WiFi Clock] Fetch time from http://worldtimeapi.org/api/timezone/Europe/Berlin");
 
     if (_proxyHost != "") {
       _http.connect(_proxyHost, _proxyPort);
@@ -160,7 +164,7 @@ class WiFiClock {
                   "Connection: close\r\n"
                   "Cache-Control: no-cache\r\n\r\n");
     } else {
-      Serial.println("Fetch time without proxy");
+      debugln("Fetch time without proxy");
       _http.connect("worldtimeapi.org", 80);
       _http.print(String("") +
                   "GET /api/timezone/Europe/Berlin HTTP/1.1\r\n"

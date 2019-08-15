@@ -4,6 +4,7 @@
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
+#include <WiFiClock.h>
 
 void setup() {
   // put your setup code here, to run once:
