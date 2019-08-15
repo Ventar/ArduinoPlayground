@@ -6,6 +6,17 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 
+
+#define DEBUG_WIFI_CLOCK
+
+#ifdef DEBUG_WIFI_CLOCK
+#define debug(x, ...) Serial.printf((String(x) + String("\n")).c_str(), __VA_ARGS__);
+#define debugln(x) Serial.printf((String(x) + String("\n")).c_str());
+#else
+#define debugln(x)
+#define debug(x, ...)
+#endif
+
 /**
  * Class to fetch the time from http://worldclockapi.com/api/json/cst/now. The call is executed once during the setup
  * method and afterwards every x hours to synchronize the time.
@@ -13,9 +24,13 @@
  * calling the setup() method of this class.
  */
 class WiFiClock {
+  /**
+   * Event triggered when the time was updated
+   */
   typedef std::function<void(String time)> TimeUpdatedEvent;
 
  public:
+
   /**
    * Sets an http proxy for the clock.
    *
@@ -45,7 +60,7 @@ class WiFiClock {
     unsigned long now = millis();
 
     // the interval to update has elapsed, we need to fetch a new reference time.
-    if (_lastCall == 0 || now - _lastCall >= (int)144000000) {
+    if (_lastCall == 0 || now - _lastCall >= (int)3600) {
       fetchTime();
     } else {
       // calculate the number of minutes that have passed since the last REST update.
@@ -116,27 +131,26 @@ class WiFiClock {
     DeserializationError err = deserializeJson(doc, payload);
 
     if (err) {
-      Serial.print("deserializeJson() failed with code ");
-      Serial.println(err.c_str());
+      debug("[WiFi Clock] deserializeJson() failed with code %s", err.c_str());
     } else {
       const char* dateTime = doc["datetime"];
-      Serial.printf("Received dateTime: %s\n", dateTime);
+      debug("[WiFi Clock] Received dateTime: %s\n", dateTime);
       _hour = String(dateTime).substring(11, 13).toInt();
       _minute = String(dateTime).substring(14, 16).toInt();
       _secondOffset = String(dateTime).substring(17, 19).toInt();
-      Serial.printf("Hour: %d\n", _hour);
-      Serial.printf("Minute: %d\n", _minute);
-      Serial.printf("Seconds: %d\n", _secondOffset);
+      debug("[WiFi Clock] Hour: %d\n", _hour);
+      debug("[WiFi Clock] Minute: %d\n", _minute);
+      debug("[WiFi Clock] Seconds: %d\n", _secondOffset);
     }
   }
 
   /**
-   * Calls http://worldclockapi.com/api/json/cst/now to fetch the current time
+   * Calls http://worldtimeapi.org/api/timezone/Europe/Berlin to fetch the current time
    */
   void fetchTime() {
     unsigned long now = millis();
 
-    Serial.println("Fetch time from http://worldclockapi.com/api/json/cst/now");
+    debug("[WiFi Clock] Fetch time from http://worldtimeapi.org/api/timezone/Europe/Berlin");
 
     if (_proxyHost != "") {
       _http.connect(_proxyHost, _proxyPort);
@@ -157,21 +171,21 @@ class WiFiClock {
 
     while (_http.connected()) {
       String line = _http.readStringUntil('\n');
-      Serial.println(line);
+      debug("[WiFi Clock] %s", line.c_str());
       if (line == "\r") {
         break;
       }
     }
 
-    Serial.println("reply was:");
-    Serial.println("==========");
+    debugln("[WiFi Clock]  reply was:");
+    debugln("[WiFi Clock]  ==========");
     String line;
     while (_http.available()) {
       line = _http.readStringUntil('\n');
-      Serial.println(line);
+      debug("[WiFi Clock] %s", line.c_str());
     }
-    Serial.println("==========");
-    Serial.println("closing connection");
+    debugln("[WiFi Clock] ==========");
+    debugln("[WiFi Clock] closing connection");
 
     parseHttpResponse(line);
 

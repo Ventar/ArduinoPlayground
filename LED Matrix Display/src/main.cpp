@@ -37,13 +37,14 @@ void setupSerial() {
     Serial.println("\n");
 
     Serial.println("---------------------------------------");
-    Serial.println("--             Circuit WS            --");
+    Serial.println("--          LED Matrix Display       --");
     Serial.println("---------------------------------------\n");
 }
 
 void setup() {
     setupSerial();
-    connectToWifi("Destiny_EXT", "8882941015907883");
+    //connectToWifi("cyTest", "wh+=qdI^7E^fy4/Eeq__N*!SD*Foo:dD'Ts.A3j\\.:QJ+99h?5:c=tB:6wCCQ+%");
+    connectToWifi("MRO Finger Weg", "7b559b98adc2");
 
     display.setup();
 
@@ -55,6 +56,7 @@ void setup() {
     });
 
     wifiClock.setBlinkingColon(true);
+    
     wifiClock.setup();
     pinMode(D4, INPUT);
     pinMode(D3, INPUT);

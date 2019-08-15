@@ -5,10 +5,13 @@
 #include <PresenceState.h>
 #include <TextItem.h>
 
-//#define DEBUG_CIRCUIT
+#define DEBUG_CIRCUIT
 
-const String WIFI_NAME = "Destiny_EXT";
-const String WIFI_PASSWORT = "8882941015907883";
+//const String WIFI_NAME = "cyTest";
+//const String WIFI_PASSWORT = "wh+=qdI^7E^fy4/Eeq__N*!SD*Foo:dD'Ts.A3j\\.:QJ+99h?5:c=tB:6wCCQ+%";
+
+const String WIFI_NAME = "MRO Finger Weg";
+const String WIFI_PASSWORT = "7b559b98adc2";
 
 Circuit::CircuitClient* circuit;
 
@@ -55,10 +58,11 @@ void setup() {
     connectToWifi(WIFI_NAME, WIFI_PASSWORT);  // connect to the WiFi network
     //circuit = new Circuit::CircuitClient("192.168.2.110", 443, "michael.rodenbuecher@atos.net", "sdf56JKL!");
     circuit = new Circuit::CircuitClient("circuitsandbox.net", 443, "michael.rodenbuecher@arduino.com", "sdf56JKL!");
+    //circuit->setProxy("proxy.cycos.com",8080);
     circuit->onConversationAddItemEvent([](Circuit::TextItem item) {
         Serial.printf("[Main] New TextItem received ::= [%s]\n", item.toString().c_str());
         /*
-        if (!answered) {
+        if (!answered) {☻
             answered = true;
             String content = String("Reply to: ") + item.content;
             circuit->post(item.conversationId, content, "", [](Circuit::ResultCode resultCode, Circuit::TextItem item) {

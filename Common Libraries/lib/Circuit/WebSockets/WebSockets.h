@@ -44,7 +44,7 @@
 #ifdef DEBUG_ESP_PORT
 #define DEBUG_WEBSOCKETS(...) DEBUG_ESP_PORT.printf(__VA_ARGS__)
 #else
-//#define DEBUG_WEBSOCKETS(...) Serial.printf( __VA_ARGS__ )
+#define DEBUG_WEBSOCKETS(...) Serial.printf( __VA_ARGS__ )
 #endif
 #endif
 
@@ -271,6 +271,8 @@ typedef struct {
 
     String extraHeaders;
     String userAgentHeader;
+    String proxyHost;
+    uint16_t proxyPort;
 
     bool cHttpHeadersValid;           ///< non-websocket http header validity indicator
     size_t cMandatoryHeadersCount;    ///< non-websocket mandatory http headers present count

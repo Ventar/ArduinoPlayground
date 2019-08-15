@@ -87,6 +87,7 @@ class WebSocketsClient : protected WebSockets {
 
     void setExtraHeaders(const char * extraHeaders = NULL);
     void setUserAgent(const char * userAgent);
+    void setProxy(String host, int port);
     
     void setReconnectInterval(unsigned long time);
         

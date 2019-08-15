@@ -207,6 +207,21 @@ void WebSocketsClient::loop(void) {
             DEBUG_WEBSOCKETS("[WS-Client] creating Network class failed!");
             return;
         }
+
+    if (_client.proxyHost != "") {
+#if defined(ESP32)
+        if(_client.tcp->connect(_client.proxyHost.c_str(), _client.proxyPport, WEBSOCKETS_TCP_TIMEOUT)) {
+#else
+        if(_client.tcp->connect(_client.proxyHost.c_str(), _client.proxyPort)) {
+#endif
+            connectedCb();
+            _lastConnectionFail = 0;
+        } else {
+            connectFailedCb();
+            _lastConnectionFail = millis();
+        }
+
+    } else {
 #if defined(ESP32)
         if(_client.tcp->connect(_host.c_str(), _port, WEBSOCKETS_TCP_TIMEOUT)) {
 #else
@@ -218,6 +233,11 @@ void WebSocketsClient::loop(void) {
             connectFailedCb();
             _lastConnectionFail = millis();
         }
+
+
+        }
+
+
     } else {
         handleClientData();
 
@@ -366,6 +386,14 @@ void WebSocketsClient::setExtraHeaders(const char * extraHeaders) {
  */
 void WebSocketsClient::setUserAgent(const char * userAgent) {
     _client.userAgentHeader = userAgent;
+}
+
+/**
+ * Set a proxy to use behind a company firewall.
+ */
+void WebSocketsClient::setProxy(String host, int port) {
+    _client.proxyHost = host;
+    _client.proxyPort = port;
 }
 
 /**
@@ -565,10 +593,20 @@ void WebSocketsClient::sendHeader(WSclient_t * client) {
     }
 
     handshake = WEBSOCKETS_STRING("GET ");
-    handshake += url + WEBSOCKETS_STRING(
-                           " HTTP/1.1\r\n"
-                           "Host: ");
-    handshake += _host + ":" + _port + NEW_LINE;
+
+
+    if (client->proxyHost != "") {
+        handshake += String("") + "https://" + _host + ":" + _port + 
+                     " HTTP/1.1\r\n" + "Host: ";
+        handshake += _host + ":" + _port + NEW_LINE;
+    } else {
+        handshake += url + WEBSOCKETS_STRING(
+                            " HTTP/1.1\r\n"
+                            "Host: ");
+        handshake += _host + ":" + _port + NEW_LINE;
+    }
+
+
 
     if(ws_header) {
         handshake += WEBSOCKETS_STRING(
