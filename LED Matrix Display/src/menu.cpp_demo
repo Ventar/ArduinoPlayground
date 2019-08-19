@@ -1,0 +1,51 @@
+#include <Arduino.h>
+#include <CommonUtilities.h>
+
+#include <Menu.h>
+#include <SPI.h>
+
+Menu::Menu menu;
+
+void printItem(Menu::MenuItem* item) {
+  Serial.println("\n---------------------------------------");
+  Serial.printf("Name    : %s\n", item->displayName.c_str());
+  if (item->parent) {
+    Serial.printf("Parent  : %s\n", item->parent->displayName.c_str());
+  } else {
+    Serial.printf("Parent  : -\n");
+  }
+  Serial.printf("Next    : %s\n", item->next->displayName.c_str());
+  Serial.printf("Previous: %s\n", item->previous->displayName.c_str());
+  Serial.printf("Children: %d\n", item->children.size());
+
+  Serial.println("---------------------------------------\n");
+}
+
+void setup() {
+  CommonUtilities::Utilities::setupSerial("--           Matrix Menu Test        --");
+
+  menu.addMenuItem("1", "1");
+  menu.addMenuItem("1-1", "1-1", "1");
+  menu.addMenuItem("1-2", "1-2", "1");
+  menu.addMenuItem("1-3", "1-3", "1");
+  menu.addMenuItem("2", "2");
+  menu.addMenuItem("2-1", "2-1", "2");
+  menu.addMenuItem("2-1-1", "2-1-1", "2-1");
+  menu.addMenuItem("2-1-2", "2-1-2", "2-1");
+  menu.addMenuItem("2-2", "2-2", "2");
+  menu.addMenuItem("3", "3");
+  menu.addMenuItem("3-1", "3-1", "3");
+  menu.addMenuItem("3-2", "3-2", "3");
+
+  menu.next();
+  menu.child();
+  menu.child();
+  menu.next();
+
+  Serial.println("ACTIVE");
+  printItem(menu.getActiveItem());
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+}
