@@ -132,6 +132,22 @@ class LEDMatrixDisplay {
                          _initAnimation->effectIn, _initAnimation->effectOut);
   }
 
+  void display(String text, textPosition_t align, textEffect_t effectIn, textEffect_t effectOut, bool loop,
+               uint16_t speed = 30, uint16_t pause = 1000) {
+    delete[] _text;
+    _text = new char[text.length() + 1];
+    text.toCharArray(_text, text.length() + 1);
+
+    this->_loop = loop;
+
+    /*
+        delete[] _initAnimation;
+        delete[] _showAnimation;
+        _initAnimation = new Animation(align, effectIn, effectOut, speed, pause);
+    */
+    _display.displayText(_text, align, speed, pause, effectIn, effectOut);
+  }
+
   void setup(void) {
     delete[] _text;
     _display.begin();
@@ -150,29 +166,15 @@ class LEDMatrixDisplay {
    * Called from the loop() method in the main class to animate the display.
    */
   void loop(void) {
-    /*
-    if (_initAnimation == NULL && _showAnimation != NULL) {
-      _display.displayText(_text, _showAnimation->align, _showAnimation->speed, _showAnimation->pause,
-                           _showAnimation->effectIn, _showAnimation->effectOut);
-    }
-    */
-
     if (_display.displayAnimate()) {
-      if (_initAnimation != NULL && _showAnimation != NULL) {
-        _display.displayText(_text, _showAnimation->align, _showAnimation->speed, _showAnimation->pause,
-                             _showAnimation->effectIn, _showAnimation->effectOut);
+      if (_loop) {
+        _display.displayReset();
       }
 
-      /*
-            if (_loop) {
-              _display.displayReset();
-            }
-
-            if (_animationDoneEvent) {
-              _animationDoneEvent();
-              _animationDoneEvent = NULL;
-            }
-            */
+      if (_animationDoneEvent) {
+        _animationDoneEvent();
+        _animationDoneEvent = NULL;
+      }
     }
   }
 

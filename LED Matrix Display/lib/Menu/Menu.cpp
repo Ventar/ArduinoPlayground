@@ -103,6 +103,11 @@ MenuItem* Menu::execute() {
 
 MenuItem* Menu::getActiveItem() { return _activeItem; }
 
+MenuItem* Menu::setActiveItem(String id) {
+  _activeItem = find(id, &_rootItem);
+  return _activeItem;
+}
+
 void Menu::onMenuSelected(MenuSelectCallback cb) { _menuSelectedCB = cb; }
 
 }  // namespace Menu

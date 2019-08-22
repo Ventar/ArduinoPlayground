@@ -131,6 +131,13 @@ class Menu {
   MenuItem* getActiveItem();
 
   /**
+   * Changes the active item to the item with the given id.
+   *
+   * @param id he id of the menu item
+   */
+  MenuItem* setActiveItem(String id);
+
+  /**
    * Registers a callback for menu selection
    */
   void onMenuSelected(MenuSelectCallback cb);
