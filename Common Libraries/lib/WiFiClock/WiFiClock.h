@@ -7,13 +7,12 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 
-
 #define DEBUG_WIFI_CLOCK
 
 #ifdef DEBUG_WIFI_CLOCK
 
-
-#define debug(x, ...) Serial.printf((String(x) + String("\n")).c_str(), __VA_ARGS__);
+#define debug(x, ...)                                                          \
+  Serial.printf((String(x) + String("\n")).c_str(), __VA_ARGS__);
 #define debugln(x) Serial.printf((String(x) + String("\n")).c_str());
 
 #else
@@ -22,10 +21,11 @@
 #endif
 
 /**
- * Class to fetch the time from http://worldclockapi.com/api/json/cst/now. The call is executed once during the setup
- * method and afterwards every x hours to synchronize the time.
- * The class relies on an existing WiFi connection, i.e. you have to ensure that a WiFi connection was setup before
- * calling the setup() method of this class.
+ * Class to fetch the time from http://worldclockapi.com/api/json/cst/now. The
+ * call is executed once during the setup method and afterwards every x hours to
+ * synchronize the time. The class relies on an existing WiFi connection, i.e.
+ * you have to ensure that a WiFi connection was setup before calling the
+ * setup() method of this class.
  */
 class WiFiClock {
   /**
@@ -33,8 +33,7 @@ class WiFiClock {
    */
   typedef std::function<void(String time)> TimeUpdatedEvent;
 
- public:
-
+public:
   /**
    * Sets an http proxy for the clock.
    *
@@ -47,7 +46,8 @@ class WiFiClock {
   }
 
   /**
-   * Initial setup of the class. Executes a first HTTP call to the world click api to fetch the time.
+   * Initial setup of the class. Executes a first HTTP call to the world click
+   * api to fetch the time.
    */
   void setup() {
     _lastColonSwitchTime = millis();
@@ -56,18 +56,21 @@ class WiFiClock {
   };
 
   /**
-   * Updates the time based on the last fetched time from the REST API and the millis() since the board was started. If
-   * the update interval has elapsed a new call to the REST API is executed to sync the time.
-   * The method has to be called within the loop() method of the main programm to update the time.
+   * Updates the time based on the last fetched time from the REST API and the
+   * millis() since the board was started. If the update interval has elapsed a
+   * new call to the REST API is executed to sync the time. The method has to be
+   * called within the loop() method of the main programm to update the time.
    */
   void loop() {
     unsigned long now = millis();
 
-    // the interval to update has elapsed, we need to fetch a new reference time.
+    // the interval to update has elapsed, we need to fetch a new reference
+    // time.
     if (_lastCall == 0 || now - _lastCall >= (int)3600000) {
       fetchTime();
     } else {
-      // calculate the number of minutes that have passed since the last REST update.
+      // calculate the number of minutes that have passed since the last REST
+      // update.
       _minutePassed = (now - _lastCall + _secondOffset * 1000) / 1000 / 60;
     }
 
@@ -85,9 +88,49 @@ class WiFiClock {
    * Builds a time String from the current time.
    */
   String getTime() {
-    String time = getHours() < 10 ? "0" + String(getHours()) : String(getHours());
+    String time =
+        getHours() < 10 ? "0" + String(getHours()) : String(getHours());
     time += !_blink || _showColon ? ":" : " ";
-    time += getMinutes() < 10 ? "0" + String(getMinutes()) : String(getMinutes());
+    time +=
+        getMinutes() < 10 ? "0" + String(getMinutes()) : String(getMinutes());
+
+    return time;
+  }
+
+  /**
+   * Returns the time in ISO8601 format with minute accuracy.
+   */
+  String getISO8601() {
+    String time = String(_year);
+
+    time += "-";
+    if (_month < 10) {
+      time += "0" + String(_month);
+    } else {
+      time += String(_month);
+    }
+    time += "-";
+    if (_day < 10) {
+      time += "0" + String(_day);
+    } else {
+      time += String(_day);
+    }
+    time += "T";
+    short hours = getHours();
+    if (hours < 10) {
+      time += "0" + String(hours);
+    } else {
+      time += String(hours);
+    }
+    time += ":";
+
+    short minutes = getMinutes();
+    if (minutes < 10) {
+      time += "0" + String(minutes);
+    } else {
+      time += String(minutes);
+    }
+    time += ":00";
 
     return time;
   }
@@ -114,7 +157,8 @@ class WiFiClock {
   short getMinutes() { return (_minute + _minutePassed) % 60; }
 
   /**
-   * Event executed when the time has changed, either due to a blinking colon or due to a minute change.
+   * Event executed when the time has changed, either due to a blinking colon or
+   * due to a minute change.
    */
   void onUpdate(TimeUpdatedEvent event) { _updateEvent = event; }
 
@@ -124,9 +168,10 @@ class WiFiClock {
    */
   void setBlinkingColon(bool blink) { _blink = blink; }
 
- private:
+private:
   /**
-   * Parses the response from the REST call to the API to retrieve the current values for hour and minute.
+   * Parses the response from the REST call to the API to retrieve the current
+   * values for hour and minute.
    *
    * @param String payload the HTTP body of the response
    */
@@ -137,40 +182,43 @@ class WiFiClock {
     if (err) {
       debug("[WiFi Clock] deserializeJson() failed with code %s", err.c_str());
     } else {
-      const char* dateTime = doc["datetime"];
+      const char *dateTime = doc["datetime"];
       debug("[WiFi Clock] Received dateTime: %s\n", dateTime);
+      _year = String(dateTime).substring(0, 4).toInt();
+      _month = String(dateTime).substring(5, 7).toInt();
+      _day = String(dateTime).substring(8, 10).toInt();
       _hour = String(dateTime).substring(11, 13).toInt();
       _minute = String(dateTime).substring(14, 16).toInt();
       _secondOffset = String(dateTime).substring(17, 19).toInt();
-      debug("[WiFi Clock] Hour: %d\n", _hour);
-      debug("[WiFi Clock] Minute: %d\n", _minute);
-      debug("[WiFi Clock] Seconds: %d\n", _secondOffset);
+      debug("[WiFi Clock] ISO8601: %s\n", getISO8601().c_str());
     }
   }
 
   /**
-   * Calls http://worldtimeapi.org/api/timezone/Europe/Berlin to fetch the current time
+   * Calls http://worldtimeapi.org/api/timezone/Europe/Berlin to fetch the
+   * current time
    */
   void fetchTime() {
     unsigned long now = millis();
 
-    debugln("[WiFi Clock] Fetch time from http://worldtimeapi.org/api/timezone/Europe/Berlin");
+    debugln("[WiFi Clock] Fetch time from "
+            "http://worldtimeapi.org/api/timezone/Europe/Berlin");
 
     if (_proxyHost != "") {
       _http.connect(_proxyHost, _proxyPort);
-      _http.print(String("") +
-                  "GET http://worldtimeapi.org/api/timezone/Europe/Berlin HTTP/1.1\r\n"
-                  "Host: worldtimeapi.org\r\n"
-                  "Connection: close\r\n"
-                  "Cache-Control: no-cache\r\n\r\n");
+      _http.print(
+          String("") +
+          "GET http://worldtimeapi.org/api/timezone/Europe/Berlin HTTP/1.1\r\n"
+          "Host: worldtimeapi.org\r\n"
+          "Connection: close\r\n"
+          "Cache-Control: no-cache\r\n\r\n");
     } else {
       debugln("Fetch time without proxy");
       _http.connect("worldtimeapi.org", 80);
-      _http.print(String("") +
-                  "GET /api/timezone/Europe/Berlin HTTP/1.1\r\n"
-                  "Host: worldtimeapi.org\r\n"
-                  "Connection: close\r\n"
-                  "Cache-Control: no-cache\r\n\r\n");
+      _http.print(String("") + "GET /api/timezone/Europe/Berlin HTTP/1.1\r\n"
+                               "Host: worldtimeapi.org\r\n"
+                               "Connection: close\r\n"
+                               "Cache-Control: no-cache\r\n\r\n");
     }
 
     while (_http.connected()) {
@@ -213,21 +261,43 @@ class WiFiClock {
    *Last time the clock was updated with data from the REST API
    */
   unsigned long _lastCall = 0;
+
   /**
-   * Hour value of the last update, i.e. not the current time but the time at _lastCall
+   * Year value of the last update, i.e. not the current time but the time at
+   * _lastCall
+   */
+  int _year = 0;
+  /**
+   * Month value of the last update, i.e. not the current time but the time at
+   * _lastCall
+   */
+  short _month = 0;
+
+  /**
+   * Day value of the last update, i.e. not the current time but the time at
+   * _lastCall
+   */
+  short _day = 0;
+
+  /**
+   * Hour value of the last update, i.e. not the current time but the time at
+   * _lastCall
    */
   short _hour = 0;
   /**
-   * Minute value of the last update, i.e. not the current time but the time at _lastCall
+   * Minute value of the last update, i.e. not the current time but the time at
+   * _lastCall
    */
   short _minute = 0;
   /**
-   * Minutes passed since the last update (_lastCall). Used to calculate the current time.
+   * Minutes passed since the last update (_lastCall). Used to calculate the
+   * current time.
    */
   short _minutePassed = 0;
   /**
-   * Seconds offset. Since the millis() function is depending on the start time of the board we cannot use it to
-   * calculate the current minutes without using this offset to find the real minute.
+   * Seconds offset. Since the millis() function is depending on the start time
+   * of the board we cannot use it to calculate the current minutes without
+   * using this offset to find the real minute.
    */
   short _secondOffset = 0;
   /**
