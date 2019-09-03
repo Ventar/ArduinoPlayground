@@ -18,8 +18,8 @@ DataCollector::DataCollector(WiFiClock* clock, DHTSensor* dht, Radar* radar, Pho
   this->lastRecordCreationTime = millis();
 }
 
-void DataCollector::loop() {
-  if (millis() - lastRecordCreationTime > recordCreationInterval) {
+void DataCollector::loop(uint64_t now) {
+  if (now - lastRecordCreationTime > recordCreationInterval) {
     createRecord();
     lastRecordCreationTime = millis();
     this->movementDetected = false;
@@ -47,6 +47,7 @@ void DataCollector::createRecord() {
   data.push_back(dSet);
 
   Serial.printf("Add data ::= [%s] , size ::= [%d]\n", dSet->toString().c_str(), data.size());
+  Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
 
   if (data.size() > maximumRecords) {
     DataSet* first = data.front();

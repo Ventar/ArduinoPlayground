@@ -14,17 +14,20 @@
 
 const String WIFI_NAME = "Destiny_EXT";
 const String WIFI_PASSWORT = "8882941015907883";
+const uint64_t CLOCK_RENEWAL_INTERVAL = 3600000;
+const uint64_t CHART_GENERATOR_INTERVAL = 60000 * 60;
+const uint64_t DATA_COLLECTOR_INTERVAL = 60000 * 5;
 
 leds::AsyncNeoPixel strip(14, D5, NEO_GRB + NEO_KHZ800);
 
-WiFiClock wifiClock;
+WiFiClock wifiClock(CLOCK_RENEWAL_INTERVAL);
 
 sensors::DHTSensor dht(D7);
 sensors::Photoresistor photo(A0);
 sensors::Radar radar(D0);
 
-sensors::DataCollector dataCollector(&wifiClock, &dht, &radar, &photo, 5000, 5);
-chart::ChartGenerator chartGen(&dataCollector);
+sensors::DataCollector dataCollector(&wifiClock, &dht, &radar, &photo, DATA_COLLECTOR_INTERVAL, 12);
+chart::ChartGenerator chartGen(CHART_GENERATOR_INTERVAL, &dataCollector);
 
 webserver::WebServer server(80);
 
@@ -41,6 +44,8 @@ void setup() {
   CommonUtilities::Utilities::setupSerial("--             Sensor Sphere         --");
   CommonUtilities::Utilities::connectToWifi(WIFI_NAME, WIFI_PASSWORT);
 
+  Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+
   wifiClock.setup();
   wifiClock.setBlinkingColon(false);
 
@@ -48,6 +53,8 @@ void setup() {
   photo.setup();
   radar.setup();
   server.setup();
+
+  Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
 
   server.onHttpRequest("/csv", [](ESP8266WebServer* server) {
     String csv = "time;temperature;humidity;heatindex;light;movement\n";
@@ -98,7 +105,7 @@ void setup() {
     Serial.printf("file size %d\n", dataFile.size());
 
     server->setContentLength(dataFile.size());
-    server->sendHeader("Connection", "keep-alive");
+    server->sendHeader("Connection", "close");
     server->send(200, "image/png", "");
 
     WiFiClient client = server->client();
@@ -130,17 +137,18 @@ void setup() {
 }
 
 void loop() {
+  uint64_t now = millis();
   strip.loop();
-  wifiClock.loop();
+  wifiClock.loop(now);
   dht.loop();
   photo.loop();
   radar.loop();
-  dataCollector.loop();
+  dataCollector.loop(now);
   server.loop();
-  chartGen.loop();
+  chartGen.loop(now);
 
-  if (millis() - last > 10000) {
-    last = millis();
+  if (now - last > 10000) {
+    last = now;
     if (enableRadar && !radar.isMovementDetected() && currentMode == leds::AsyncNeoPixelMode::THEATER_CHASE) {
       strip.setMode(leds::AsyncNeoPixelMode::OFF);
       currentMode = leds::AsyncNeoPixelMode::OFF;

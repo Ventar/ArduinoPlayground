@@ -61,7 +61,7 @@ class DataCollector {
   /**
    * Logic to execute during every loop() in the main programm.
    */
-  void loop();
+  void loop(uint64_t now);
 
   /**
    * Returns all available records.

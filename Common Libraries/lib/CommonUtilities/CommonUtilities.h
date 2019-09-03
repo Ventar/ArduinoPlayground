@@ -28,6 +28,7 @@ public:
     Serial.println("---------------------------------------");
     Serial.println(name);
     Serial.println("---------------------------------------\n");
+    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
   }
 
   /**

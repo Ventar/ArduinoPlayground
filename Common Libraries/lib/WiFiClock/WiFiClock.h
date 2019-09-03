@@ -34,6 +34,12 @@ class WiFiClock {
   typedef std::function<void(String time)> TimeUpdatedEvent;
 
 public:
+  WiFiClock(){};
+
+  WiFiClock(uint64_t renewalInterval) {
+    this->_renewalInterval = renewalInterval;
+  }
+
   /**
    * Sets an http proxy for the clock.
    *
@@ -61,12 +67,11 @@ public:
    * new call to the REST API is executed to sync the time. The method has to be
    * called within the loop() method of the main programm to update the time.
    */
-  void loop() {
-    unsigned long now = millis();
+  void loop(uint64_t now) {
 
     // the interval to update has elapsed, we need to fetch a new reference
     // time.
-    if (_lastCall == 0 || now - _lastCall >= (int)3600000) {
+    if (_lastCall == 0 || now - _lastCall >= _renewalInterval) {
       fetchTime();
     } else {
       // calculate the number of minutes that have passed since the last REST
@@ -316,6 +321,10 @@ private:
    * Event triggered when the time has changed.
    */
   TimeUpdatedEvent _updateEvent;
+  /**
+   * Interval in which the board syncs with the api server.
+   */
+  uint64_t _renewalInterval = 3600000;
 };
 
 #endif

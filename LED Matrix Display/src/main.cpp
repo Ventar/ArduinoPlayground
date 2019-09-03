@@ -93,7 +93,7 @@ void setup() {
   // Setup the Circuit connection
   // ----------------------------------------------------------------------------------
   display.displayTextSync("Circuit", []() {
-    circuit = new Circuit::CircuitClient("circuitsandbox.net", 443, "michael.rodenbuecher@arduino.com", "sdf56JKL!");
+    circuit = new Circuit::CircuitClient(CIRCUIT_SYSTEM, 443, CIRCUIT_USER, CIRCUIT_PWD);
     circuit->setup();
     registerNewMessageCallback();
   });

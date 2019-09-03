@@ -8,10 +8,13 @@
 
 namespace chart {
 
-ChartGenerator::ChartGenerator(sensors::DataCollector* collector) { this->data = collector; }
+ChartGenerator::ChartGenerator(uint64_t renewalInterval, sensors::DataCollector* collector) {
+  this->renewalInterval = renewalInterval;
+  this->collector = collector;
+}
 
-void ChartGenerator::loop() {
-  if (millis() - lastGeneration > 60000) {
+void ChartGenerator::loop(uint64_t now) {
+  if (now - lastGeneration > renewalInterval) {
     WiFiClientSecure client;
     client.setInsecure();
     Serial.print("connecting to server");
@@ -21,12 +24,30 @@ void ChartGenerator::loop() {
       return;
     }
 
+    String time = "";
+    String data = "";
+
+    for (sensors::DataSet* rec : collector->getRecords()) {
+      time += "'" + rec->timestamp->substring(11, 16) + "',";
+      data += String(rec->temperature) + ",";
+    }
+    time = time.substring(0, time.length() - 1);
+    data = data.substring(0, data.length() - 1);
+
+    String quickchartTemplate =
+        base64::encode("{type: 'line', data: { labels: [" + time +
+                       "], datasets: [{ label: "
+                       "'Temperature',  "
+                       " data: [ " +
+                       data +
+                       " ] }]}, options: {legend: { position: 'bottom' }, plugins: { datalabels: { "
+                       "display: true, font: { style: 'italic', }}}}}");
+    quickchartTemplate.replace("\n", "");
+
     client.print(String("GET "
                         "https://quickchart.io/"
-                        "chart?width=500&height=300&c={type:%27bar%27,data:{labels:[%"
-                        "27January%27,%27February%27,%27March%27,%27April%27,%20%27May%27]"
-                        ",%20datasets:[{label:%27Dogs%27,data:[50,60,70,180,190]},{label:%"
-                        "27Cats%27,data:[100,200,300,400,500]}]}} HTTP/1.1\r\n") +
+                        "chart?width=500&height=300&encoding=base64&backgroundColor=white&c=" +
+                        quickchartTemplate + " HTTP/1.1\r\n") +
                  "Host: quickchart.io\r\n" + "User-Agent: ESP8266\r\n Connection: close\r\n\r\n");
 
     long len = -1;
@@ -34,7 +55,7 @@ void ChartGenerator::loop() {
       String line = client.readStringUntil('\n');
       if (line.startsWith("Content-Length:")) {
         len = line.substring(15).toInt();
-        Serial.printf("Content-Length: %d\n", len);
+        Serial.printf("Content-Length: %d\n", (int)len);
       }
       if (line == "\r") {
         Serial.println("headers received");
@@ -43,6 +64,7 @@ void ChartGenerator::loop() {
     }
 
     File f = SPIFFS.open("chart.png", "w");
+
     if (f) {
       uint8_t buff[1024];
       while (client.connected() && (len > 0 || len == -1)) {
@@ -52,12 +74,9 @@ void ChartGenerator::loop() {
           f.write(buff, c);
           if (len > 0) len -= c;
         } else {
-          Serial.printf("No new bytes\n");
           continue;
         }
         Serial.printf("bytes left %d\n", len);
-        ESP.wdtDisable();
-        ESP.wdtEnable(1000);
       }
       Serial.println("done.");
       f.close();
@@ -65,6 +84,7 @@ void ChartGenerator::loop() {
       Serial.println("Cannot store file");
     }
 
+    client.stop();
     lastGeneration = millis();
   }
 }
