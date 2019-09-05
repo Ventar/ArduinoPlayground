@@ -6,7 +6,12 @@
 #include <Menu.h>
 #include <PresenceState.h>
 #include <TextItem.h>
+#include <WebServer.h>
 #include <WiFiClock.h>
+
+// ---------------------------------------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------------------------------------
 
 // const String WIFI_NAME = "MRO Finger Weg";
 // const String WIFI_PASSWORT = "7b559b98adc2";
@@ -14,16 +19,28 @@
 const String WIFI_NAME = "Destiny_EXT";
 const String WIFI_PASSWORT = "8882941015907883";
 
-const String CIRCUIT_SYSTEM = "circuitsandbox.net";
-const String CIRCUIT_USER = "michael.rodenbuecher@arduino.com";
+const String CIRCUIT_SYSTEM = "hakuna.circuitsandbox.net";
+const String CIRCUIT_USER = "michael.rodenbuecher@spaces.com";
 const String CIRCUIT_PWD = "sdf56JKL!";
+const String CIRCUIT_USER_ID = "2f9609c6-de11-44df-957f-6ba3383a0025";
+const String CIRCUIT_CONV_ID = "37ac0211-5fae-41c4-b464-d0802a296b9e";
+const String SPHERE_IP = "192.168.2.106";
+const String BOARD_IP = "192.168.2.113";
 
-enum ActivePage { EVENT, CLOCK, MESSAGES };
-
+// ---------------------------------------------------------------------------------------------------------
+// Components
+// ---------------------------------------------------------------------------------------------------------
 Circuit::CircuitClient* circuit;
 LEDMatrixDisplay display;
 WiFiClock wifiClock;
 Menu::Menu menu;
+webserver::WebServer server(80);
+
+// ---------------------------------------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------------------------------------
+
+enum ActivePage { EVENT, CLOCK, MESSAGES };
 
 // Time when to content of the display changed last time.
 uint64_t lastDisplayAction = millis();
@@ -61,12 +78,27 @@ void setActivePage(ActivePage newPage, bool overridePrevious) {
  */
 void registerNewMessageCallback() {
   circuit->onConversationAddItemEvent([](Circuit::TextItem item) {
-    newMessages++;
+    if (item.creatorId != CIRCUIT_USER_ID) {
+      newMessages++;
 
-    // TODO: Filter own messages
-    displayTimer = 6000;
+      // TODO: Filter own messages
+      displayTimer = 6000;
+      setActivePage(EVENT, false);
+      display.display("New Message", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+      lastDisplayAction = millis();
+    }
+  });
+}
+
+/**
+ * Registers a callback in the circuit client to get informed about new
+ * calls.
+ */
+void registerIncomingCallCallback() {
+  circuit->onRTCSessionSessionStartedEvent([](Circuit::Call call) {
+    displayTimer = 8000;
     setActivePage(EVENT, false);
-    display.display("New Message", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    display.display("Call", PA_CENTER, PA_OPENING, PA_CLOSING, true);
     lastDisplayAction = millis();
   });
 }
@@ -75,6 +107,18 @@ void setup() {
   // setup the display to ensure it is black
   // ----------------------------------------------------------------------------------
   display.setup();
+  server.setup();
+  server.onHttpRequest("/alarm", [](ESP8266WebServer* server) {
+    circuit->post(CIRCUIT_CONV_ID, wifiClock.getISO8601() + " alarm detected !!!", "Alarm",
+                  [](Circuit::ResultCode resultCode, Circuit::TextItem item) {
+                    Serial.printf("[Main] Response for new text item creation ::= [%s]\n", item.toString().c_str());
+                  });
+
+    display.display("Alarm detected post to Circuit", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
+    lastDisplayAction = millis();
+    server->send(200, "text/plain", "ok");
+  });
 
   // Buttons ( will be quite fast)
   // ----------------------------------------------------------------------------------
@@ -96,6 +140,7 @@ void setup() {
     circuit = new Circuit::CircuitClient(CIRCUIT_SYSTEM, 443, CIRCUIT_USER, CIRCUIT_PWD);
     circuit->setup();
     registerNewMessageCallback();
+    registerIncomingCallCallback();
   });
 
   // setup the clock
@@ -105,26 +150,87 @@ void setup() {
     wifiClock.setBlinkingColon(true);
   });
 
-  // display.setText(wifiClock.getTime(), PA_CENTER, PA_RANDOM, PA_NO_EFFECT, false, true, false);
-
-  // the clock ist updated every second (blinking colon) but the display is only
-  // changed if the
-  /*
-  wifiClock.onUpdate([](String time) {
-    if (page == CLOCK) {
-      display.setText(time, PA_CENTER, PA_PRINT, PA_NO_EFFECT);
-    }
-  });
-  */
   // Menu entries
   // ----------------------------------------------------------------------------------
 
-  menu.addMenuItem("Clock", "Clock");
-  menu.addMenuItem("Messages", "Msg.");
+  menu.addMenuItem("Clock", "Clock", []() { setActivePage(CLOCK, true); });
+  menu.addMenuItem("Messages", "Msg.", []() { setActivePage(MESSAGES, true); });
   menu.addMenuItem("Setup", "Setup");
   menu.addMenuItem("IP", "IP", "Setup", []() {
     display.display(WiFi.localIP().toString(), PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
     displayTimer = 10000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("Sphere", "Sphere");
+  menu.addMenuItem("SphereEnable", "On", "Sphere", []() {
+    HTTPClient http;
+    http.begin(String("http://") + SPHERE_IP + "/radar/enable");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to enable radar", code);
+    http.end();
+    display.display("Movement detection enabled", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 10000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("SphereEnable", "Off", "Sphere", []() {
+    HTTPClient http;
+    http.begin(String("http://") + SPHERE_IP + "/radar/disable");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to enable radar", code);
+    http.end();
+    display.display("Movement detection disabled", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 10000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("Board", "Board");
+  menu.addMenuItem("BoardOff", "Off", "Board", []() {
+    HTTPClient http;
+    http.begin(String("http://") + BOARD_IP + "/off");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to change presence board", code);
+    http.end();
+    display.display("Presence Board set to mode OFF", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("BoardAlarm", "Alarm", "Board", []() {
+    HTTPClient http;
+    http.begin(String("http://") + BOARD_IP + "/alarm");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to change presence board", code);
+    http.end();
+    display.display("Presence Board set to mode ALARM", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("BoardLight", "Light", "Board", []() {
+    HTTPClient http;
+    http.begin(String("http://") + BOARD_IP + "/white");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to change presence board", code);
+    http.end();
+    display.display("Presence Board set to mode LIGHT", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("BoardPresence", "Pres.", "Board", []() {
+    HTTPClient http;
+    http.begin(String("http://") + BOARD_IP + "/presence");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to change presence board", code);
+    http.end();
+    display.display("Presence Board set to mode PRESENCE", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
+    lastDisplayAction = millis();
+  });
+  menu.addMenuItem("BoardRainbow", "Rain.", "Board", []() {
+    HTTPClient http;
+    http.begin(String("http://") + BOARD_IP + "/rainbow");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to change presence board", code);
+    http.end();
+    display.display("Presence Board set to mode RAINBOW", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 12000;
     lastDisplayAction = millis();
   });
 
@@ -134,9 +240,11 @@ void setup() {
 }
 
 void loop() {
-  wifiClock.loop();
+  uint64_t now = millis();
+  wifiClock.loop(now);
   display.loop();
   circuit->loop();
+  server.loop();
 
   int d1 = digitalRead(D1);
   int d2 = digitalRead(D2);
@@ -146,15 +254,8 @@ void loop() {
   if (d1 == 0) {
     menu.next();
     display.display(menu.getActiveItem()->displayName, PA_RIGHT, PA_SCROLL_DOWN, PA_NO_EFFECT, false);
-
-    if (menu.getActiveItem()->id == "Clock") {
-      setActivePage(CLOCK, true);
-    } else if (menu.getActiveItem()->id == "Messages") {
-      setActivePage(MESSAGES, true);
-    }
-
     delay(500);
-    lastDisplayAction = millis();
+    lastDisplayAction = now;
   }
 
   if (d2 == 0) {
@@ -163,17 +264,21 @@ void loop() {
     } else {
       menu.child();
       display.display(menu.getActiveItem()->displayName, PA_RIGHT, PA_SCROLL_DOWN, PA_NO_EFFECT, false);
-      lastDisplayAction = millis();
+      lastDisplayAction = now;
     }
     delay(500);
   }
 
-  if (d4 == 0) {
+  if (d3 == 0) {
+    menu.back();
+    display.display(menu.getActiveItem()->displayName, PA_RIGHT, PA_SCROLL_DOWN, PA_NO_EFFECT, false);
+    lastDisplayAction = now;
+    delay(500);
   }
 
-  if (page == CLOCK && millis() - lastDisplayAction > 2000) {
+  if (page == CLOCK && millis() - lastDisplayAction > 5000) {
     display.display(wifiClock.getTime(), PA_CENTER, PA_PRINT, PA_NO_EFFECT, false);
-  } else if (page == MESSAGES && millis() - lastDisplayAction > 2000) {
+  } else if (page == MESSAGES && millis() - lastDisplayAction > 5000) {
     display.display(String("- ") + newMessages + " -", PA_CENTER, PA_PRINT, PA_NO_EFFECT, false);
   } else if (millis() - lastDisplayAction > 10000) {
     if (previousActivePage == CLOCK) {
@@ -183,36 +288,4 @@ void loop() {
     }
     displayTimer = 10000;
   }
-
-  /**
-
-    if (page == CLOCK) {
-      display.setText(wifiClock.getTime(), PA_CENTER, PA_PRINT, PA_NO_EFFECT);
-    }
-
-    if (d1 == 0) {
-      page = CLOCK;
-      display.setText(wifiClock.getTime(), PA_CENTER, PA_PRINT, PA_NO_EFFECT);
-      delay(500);
-    }
-
-    if (d2 == 0) {
-      displayNewMessages();
-      delay(500);
-    }
-
-    if (d3 == 0) {
-      if (page == NEW_MESSAGES) {
-        shortMessageCounter = !shortMessageCounter;
-        displayNewMessages();
-        delay(500);
-      }
-    }
-  */
-  /*
-  if (millis() - lastPrint > 1000) {
-      Serial.printf("d1: %d / d2: %d / d3: %d / d4: %d\n", d1, d2, d3, d4);
-      lastPrint = millis();
-  }
-  */
 }

@@ -35,8 +35,22 @@ void WebServer::handleRequest() {
 
   const String path = server->uri();
 
+  for (CallbackData *cbd : callbacks) {
+    if (*cbd->path == path) {
+      cbd->callback(server);
+      return;
+    }
+  }
+
   if (path == "/") {
-    server->send(200, "text/plain", "ESP8266 webserver is running...");
+    String s = "<body><h2>ESP8266 webserver is running...</h2>";
+
+    for (CallbackData *cbd : callbacks) {
+      s += "<p><a href='" + *cbd->path + "'>" + *cbd->path + "</a> </p>";
+    }
+
+    s += "</body>";
+    server->send(200, "text/html", s);
     return;
   }
 
@@ -45,12 +59,6 @@ void WebServer::handleRequest() {
     return;
   }
 
-  for (CallbackData *cbd : callbacks) {
-    if (*cbd->path == path) {
-      cbd->callback(server);
-      return;
-    }
-  }
   // in case the request was not handled.
   server->send(200, "text/plain",
                String("ESP8266 webserver is running...no endpoint for ::= [") +

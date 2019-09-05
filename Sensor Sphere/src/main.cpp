@@ -12,25 +12,39 @@
 #include <components/Radar.h>
 #include <list>
 
+// ---------------------------------------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------------------------------------
 const String WIFI_NAME = "Destiny_EXT";
 const String WIFI_PASSWORT = "8882941015907883";
+
+const String CIRCUIT_SYSTEM = "hakuna.circuitsandbox.net";
+const String CIRCUIT_USER = "michael.rodenbuecher@spaces.com";
+const String CIRCUIT_PWD = "sdf56JKL!";
+const String CIRCUIT_USER_ID = "2f9609c6-de11-44df-957f-6ba3383a0025";
+
+const String DISPLAY_IP = "192.168.2.115";
+const String BOARD_IP = "192.168.2.115";
+
 const uint64_t CLOCK_RENEWAL_INTERVAL = 3600000;
-const uint64_t CHART_GENERATOR_INTERVAL = 60000 * 60;
-const uint64_t DATA_COLLECTOR_INTERVAL = 60000 * 5;
+const uint64_t CHART_GENERATOR_INTERVAL = 60000 * 5;
+const uint64_t DATA_COLLECTOR_INTERVAL = 60000 * 1;
 
+// ---------------------------------------------------------------------------------------------------------
+// Components
+// ---------------------------------------------------------------------------------------------------------
 leds::AsyncNeoPixel strip(14, D5, NEO_GRB + NEO_KHZ800);
-
 WiFiClock wifiClock(CLOCK_RENEWAL_INTERVAL);
-
 sensors::DHTSensor dht(D7);
 sensors::Photoresistor photo(A0);
 sensors::Radar radar(D0);
-
 sensors::DataCollector dataCollector(&wifiClock, &dht, &radar, &photo, DATA_COLLECTOR_INTERVAL, 12);
 chart::ChartGenerator chartGen(CHART_GENERATOR_INTERVAL, &dataCollector);
-
 webserver::WebServer server(80);
 
+// ---------------------------------------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------------------------------------
 bool enableRadar = false;
 leds::AsyncNeoPixelMode currentMode = leds::AsyncNeoPixelMode::OFF;
 unsigned long last = millis();
