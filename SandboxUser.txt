@@ -1,0 +1,38 @@
+
+michaelr@mgmt-01-boca-us:~> tad tenant user add 243441342023 nicole.ziegenhagen@arduino.com Nicole Ziegenhagen sdf56JKL! UnifyEnterprise USER
+
+ User Data
+ User ID                              392d2ec8-44cf-42f9-b88b-3ed9c332493d
+ Firstname                            Nicole
+ Lastname                             Ziegenhagen
+ EMail                                nicole.ziegenhagen@arduino.com
+ Locale
+ External                             false
+michaelr@mgmt-01-boca-us:~> tad tenant user list 243441342023
+
+ User ID                               Email                             Name                  Status  Package          Template  Last Login
+ Account ID
+ 81fad5a6-212f-4dca-8b40-78742a1aca79  frank.poettgen@arduino.com        Frank Poettgen        ACTIVE  UnifyEnterprise  USER
+ 02a4f620-b5e5-4179-9630-731246133f8d
+ 39219159-dc76-4f28-ada0-67a44fcb0629  klaus.zimmermann@arduino.com      Klaus Zimmermann      ACTIVE  UnifyEnterprise  USER
+ da3be6df-019d-4838-9163-970c1745092f
+ 3eb69cff-5f45-428b-9a9a-37f1b584b756  lukas.ruge@arduino.com            Lukas Ruge            ACTIVE  UnifyEnterprise  USER
+ a21d758e-3b90-4755-bf2d-60b5d1da4e95
+ 037f6e7f-b6ba-48c2-b9fd-009c0952b84d  michael.rodenbuecher@arduino.com  Michael Rodenbuecher  ACTIVE  UnifyEnterprise  ADMIN     Fri Aug 30 2019 | 7 day(s) ago
+ 99767d2b-f8d6-4272-82d3-af6c39f2a34e
+ 61c9d129-e2a1-4382-ae20-253b16910fe3  michael.schuergers@arduino.com    Michael Schuergers    ACTIVE  UnifyEnterprise  USER
+ 479c02d7-72ab-43ef-8404-a2389b557b13
+ 392d2ec8-44cf-42f9-b88b-3ed9c332493d  nicole.ziegenhagen@arduino.com    Nicole Ziegenhagen    ACTIVE  UnifyEnterprise  USER
+ 7a2210d3-57f1-428f-9cbd-2d3ba0aba8e8
+ 4308ceaf-5e3b-47ea-9719-250d77b04f1e  nikos.begnis@arduino.com          Nikos Begnis          ACTIVE  UnifyEnterprise  USER
+ e7f14c0a-ea30-4b59-9ed9-14dd5d12651f
+ 85fa6dac-7c2f-44b3-a23e-ed8bb7c79ac4  toni.kraemer@arduino.com          Toni Kraemer          ACTIVE  UnifyEnterprise  USER
+ 2b371ac0-91b8-4882-b48f-b115d542c23b
+ d94a4f77-1cb9-49ba-98c3-cd44d6da1e39  wolfgang.schiffer@arduino.com     Wolfgang Schiffer     ACTIVE  UnifyEnterprise  USER      Fri Aug 30 2019 | 7 day(s) ago
+ ea1b95eb-9679-47d2-aef9-dee5c07119c7
+ f0005d36-4484-4323-97b6-9858c92e5a5d  yannick.ruppenthal@arduino.com    Yannick Ruppenthal    ACTIVE  UnifyEnterprise  USER
+ fdb4b7b8-6b56-42ec-ab64-772d790bbc65
+ 79fbdfe8-09e5-49c0-b163-eefba5a24e0e  yuliia.ott@arduino.com            Yuliia Ott            ACTIVE  UnifyEnterprise  USER
+ 4871a182-a6f9-4903-9f59-94d7badcd5c0
+
+ page info   :  1 / 1
