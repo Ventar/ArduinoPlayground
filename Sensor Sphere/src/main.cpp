@@ -24,7 +24,7 @@ const String CIRCUIT_PWD = "sdf56JKL!";
 const String CIRCUIT_USER_ID = "2f9609c6-de11-44df-957f-6ba3383a0025";
 
 const String DISPLAY_IP = "192.168.2.115";
-const String BOARD_IP = "192.168.2.115";
+const String BOARD_IP = "192.168.2.131";
 
 const uint64_t CLOCK_RENEWAL_INTERVAL = 3600000;
 const uint64_t CHART_GENERATOR_INTERVAL = 60000 * 5;
@@ -46,6 +46,8 @@ webserver::WebServer server(80);
 // Data
 // ---------------------------------------------------------------------------------------------------------
 bool enableRadar = false;
+bool connectedRadar = false;
+
 leds::AsyncNeoPixelMode currentMode = leds::AsyncNeoPixelMode::OFF;
 unsigned long last = millis();
 
@@ -106,8 +108,15 @@ void setup() {
     server->send(200, "text/plain", "ok");
   });
 
+  server.onHttpRequest("/radar/connected", [](ESP8266WebServer* server) {
+    enableRadar = true;
+    connectedRadar = true;
+    server->send(200, "text/plain", "ok");
+  });
+
   server.onHttpRequest("/radar/disable", [](ESP8266WebServer* server) {
     enableRadar = false;
+    connectedRadar = false;
     strip.setMode(leds::AsyncNeoPixelMode::OFF);
     currentMode = leds::AsyncNeoPixelMode::OFF;
     server->send(200, "text/plain", "ok");
@@ -140,6 +149,18 @@ void setup() {
 
   radar.registerCallback([](sensors::Radar* r) {
     if (enableRadar) {
+      if (connectedRadar) {
+        HTTPClient http;
+        http.setTimeout(1000);
+        http.begin(String("http://") + BOARD_IP + "/alarm");
+        http.GET();
+        http.end();
+
+        http.begin(String("http://") + DISPLAY_IP + "/alarm");
+        http.GET();
+        http.end();
+      }
+
       strip.setMode(leds::AsyncNeoPixelMode::THEATER_CHASE,
                     "ff0000,0000ff,ff0000,0000ff,ff0000,0000ff,ff0000,0000ff,ff0000,0000ff,ff0000,0000ff,ff0000,0000ff",
                     "95");

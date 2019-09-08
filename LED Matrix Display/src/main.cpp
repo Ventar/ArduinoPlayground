@@ -19,13 +19,13 @@
 const String WIFI_NAME = "Destiny_EXT";
 const String WIFI_PASSWORT = "8882941015907883";
 
-const String CIRCUIT_SYSTEM = "hakuna.circuitsandbox.net";
-const String CIRCUIT_USER = "michael.rodenbuecher@spaces.com";
+const String CIRCUIT_SYSTEM = "circuitsandbox.net";
+const String CIRCUIT_USER = "michael.rodenbuecher@arduino.com";
 const String CIRCUIT_PWD = "sdf56JKL!";
-const String CIRCUIT_USER_ID = "2f9609c6-de11-44df-957f-6ba3383a0025";
-const String CIRCUIT_CONV_ID = "37ac0211-5fae-41c4-b464-d0802a296b9e";
+const String CIRCUIT_USER_ID = "037f6e7f-b6ba-48c2-b9fd-009c0952b84d";
+const String CIRCUIT_CONV_ID = "43f3bc7a-785b-4477-a4db-0b46bd29fbe8";
 const String SPHERE_IP = "192.168.2.106";
-const String BOARD_IP = "192.168.2.113";
+const String BOARD_IP = "192.168.2.131";
 
 // ---------------------------------------------------------------------------------------------------------
 // Components
@@ -44,6 +44,9 @@ enum ActivePage { EVENT, CLOCK, MESSAGES };
 
 // Time when to content of the display changed last time.
 uint64_t lastDisplayAction = millis();
+
+// last time an alarm was reported
+uint64_t lastAlarmTime = millis();
 
 // The number of messages whichw where received during the lifetime of the
 // appliation
@@ -83,7 +86,9 @@ void registerNewMessageCallback() {
 
       // TODO: Filter own messages
       displayTimer = 6000;
-      setActivePage(EVENT, false);
+      if (page != EVENT) {
+        setActivePage(EVENT, false);
+      }
       display.display("New Message", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
       lastDisplayAction = millis();
     }
@@ -97,8 +102,10 @@ void registerNewMessageCallback() {
 void registerIncomingCallCallback() {
   circuit->onRTCSessionSessionStartedEvent([](Circuit::Call call) {
     displayTimer = 8000;
-    setActivePage(EVENT, false);
-    display.display("Call", PA_CENTER, PA_OPENING, PA_CLOSING, true);
+    if (page != EVENT) {
+      setActivePage(EVENT, false);
+    }
+    display.display("<< Call >>", PA_CENTER, PA_OPENING, PA_CLOSING, true);
     lastDisplayAction = millis();
   });
 }
@@ -109,15 +116,20 @@ void setup() {
   display.setup();
   server.setup();
   server.onHttpRequest("/alarm", [](ESP8266WebServer* server) {
-    circuit->post(CIRCUIT_CONV_ID, wifiClock.getISO8601() + " alarm detected !!!", "Alarm",
-                  [](Circuit::ResultCode resultCode, Circuit::TextItem item) {
-                    Serial.printf("[Main] Response for new text item creation ::= [%s]\n", item.toString().c_str());
-                  });
+    uint64_t now = millis();
 
-    display.display("Alarm detected post to Circuit", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
-    displayTimer = 12000;
-    lastDisplayAction = millis();
-    server->send(200, "text/plain", "ok");
+    if (now - lastAlarmTime > 60000) {
+      lastAlarmTime = now;
+      circuit->post(CIRCUIT_CONV_ID, wifiClock.getISO8601() + " alarm detected !!!", "Alarm",
+                    [](Circuit::ResultCode resultCode, Circuit::TextItem item) {
+
+                    });
+
+      display.display("Alarm detected post to Circuit", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+      displayTimer = 12000;
+      lastDisplayAction = millis();
+      server->send(200, "text/plain", "ok");
+    }
   });
 
   // Buttons ( will be quite fast)
@@ -172,6 +184,16 @@ void setup() {
     displayTimer = 10000;
     lastDisplayAction = millis();
   });
+  menu.addMenuItem("SphereEnable", "Conn.", "Sphere", []() {
+    HTTPClient http;
+    http.begin(String("http://") + SPHERE_IP + "/radar/connected");
+    int code = http.GET();
+    Serial.printf("received HTTP response code %d for request to enable radar", code);
+    http.end();
+    display.display("Movement detection enabled", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    displayTimer = 10000;
+    lastDisplayAction = millis();
+  });
   menu.addMenuItem("SphereEnable", "Off", "Sphere", []() {
     HTTPClient http;
     http.begin(String("http://") + SPHERE_IP + "/radar/disable");
@@ -213,13 +235,13 @@ void setup() {
     displayTimer = 12000;
     lastDisplayAction = millis();
   });
-  menu.addMenuItem("BoardPresence", "Pres.", "Board", []() {
+  menu.addMenuItem("BoardPresence", "Circuit", "Board", []() {
     HTTPClient http;
-    http.begin(String("http://") + BOARD_IP + "/presence");
+    http.begin(String("http://") + BOARD_IP + "/circuit");
     int code = http.GET();
     Serial.printf("received HTTP response code %d for request to change presence board", code);
     http.end();
-    display.display("Presence Board set to mode PRESENCE", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
+    display.display("Presence Board set to mode CIRCUIT", PA_RIGHT, PA_SCROLL_RIGHT, PA_SCROLL_RIGHT, true);
     displayTimer = 12000;
     lastDisplayAction = millis();
   });
@@ -276,11 +298,15 @@ void loop() {
     delay(500);
   }
 
-  if (page == CLOCK && millis() - lastDisplayAction > 5000) {
+  if (d4 == 0) {
+    newMessages = 0;
+  }
+
+  if (page == CLOCK && now - lastDisplayAction > 5000) {
     display.display(wifiClock.getTime(), PA_CENTER, PA_PRINT, PA_NO_EFFECT, false);
-  } else if (page == MESSAGES && millis() - lastDisplayAction > 5000) {
+  } else if (page == MESSAGES && now - lastDisplayAction > 5000) {
     display.display(String("- ") + newMessages + " -", PA_CENTER, PA_PRINT, PA_NO_EFFECT, false);
-  } else if (millis() - lastDisplayAction > 10000) {
+  } else if (now - lastDisplayAction > 10000) {
     if (previousActivePage == CLOCK) {
       setActivePage(CLOCK, true);
     } else if (previousActivePage == MESSAGES) {
